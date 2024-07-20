@@ -3,8 +3,13 @@ import CustomNavbar from './components/CustomNavbar'
 </script>
 
 <template>
+<!-- 自定义导航栏 -->
   <CustomNavbar />
-  <view class="index">index</view>
+  <XtxSwiper />
+  <view class="content">
+    <view class="title">Hello, world!</view>
+  </view>
 </template>
 
-<style lang="scss"></style>
+<style lang="scss">
+</style>
