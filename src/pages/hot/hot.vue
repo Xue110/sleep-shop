@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { getHotRecommendAPI } from '@/services/hot';
-import type { SubTypeItem } from '@/types/hot';
-import { onLoad } from '@dcloudio/uni-app';
-import { ref } from 'vue';
+import { getHotRecommendAPI } from '@/services/hot'
+import type { SubTypeItem } from '@/types/hot'
+import { onLoad } from '@dcloudio/uni-app'
+import { ref } from 'vue'
 
 // 热门推荐页 标题和url
 const hotMap = [
@@ -22,42 +22,82 @@ uni.setNavigationBarTitle({ title: currHot!.title })
 
 // 推荐封面图
 const bannerPicture = ref('')
-const subTypes = ref<SubTypeItem[]>([])
+const subTypes = ref<(SubTypeItem & { finish?: boolean })[]>([])
+// 当前选项
 const activeIndex = ref(0)
 // 获取热门推荐数据
-const getHotRecommendData = async()=>{
-  const res = await getHotRecommendAPI(currHot!.url)
+const getHotRecommendData = async () => {
+  const res = await getHotRecommendAPI(currHot!.url, {
+    // 技巧：环境变量，开发环境，修改初始页面方便测试分页结束
+    page: import.meta.env.DEV ? 30 : 1,
+    pageSize: 10,
+  })
   // console.log(res.result.title)
   bannerPicture.value = res.result.bannerPicture
   subTypes.value = res.result.subTypes
 }
 
 //页面加载
-onLoad(()=>{
+onLoad(() => {
   getHotRecommendData()
 })
+
+//滚动触底
+const onScrollTolower = async () => {
+  //获取当前选项
+  const currsubTypes = subTypes.value[activeIndex.value]
+  //分页条件
+  if (currsubTypes.goodsItems.page < currsubTypes.goodsItems.pages) {
+    // 当前页码累加
+    currsubTypes.goodsItems.page++
+  } else {
+    // 标记已结束
+    currsubTypes.finish = true
+    // 退出并轻提示
+    return uni.showToast({
+      title: '没有更多数据了',
+      icon: 'none',
+    })
+  }
+
+  // 调用API传参
+  const res = await getHotRecommendAPI(currHot!.url, {
+    subType: currsubTypes.id,
+    page: currsubTypes.goodsItems.page,
+    pageSize: currsubTypes.goodsItems.pageSize,
+  })
+  //新的列表选项
+  const newsubTypes = res.result.subTypes[activeIndex.value]
+  //数组追加
+  currsubTypes.goodsItems.items.push(...newsubTypes.goodsItems.items)
+}
 </script>
 <template>
   <view class="viewport">
     <!-- 推荐封面图 -->
     <view class="cover">
-      <image
-        :src="bannerPicture"
-      ></image>
+      <image :src="bannerPicture"></image>
     </view>
     <!-- 推荐选项 -->
     <view class="tabs">
       <text
-      v-for="(item,index) in subTypes"
-      :key="item.id"
-      class="text"
-      :class="{active:index === activeIndex}"
-      @tap="activeIndex = index"
-      >{{ item.title }}
-    </text>
+        v-for="(item, index) in subTypes"
+        :key="item.id"
+        class="text"
+        :class="{ active: index === activeIndex }"
+        @tap="activeIndex = index"
+        >{{ item.title }}
+      </text>
     </view>
     <!-- 推荐列表 -->
-    <scroll-view v-for="(item,index) in subTypes" :key="item.id" v-show="activeIndex === index" scroll-y class="scroll-view">
+    <scroll-view
+      v-for="(item, index) in subTypes"
+      :key="item.id"
+      v-show="activeIndex === index"
+      scroll-y
+      class="scroll-view"
+      @scrolltolower="onScrollTolower"
+    >
       <view class="goods">
         <navigator
           hover-class="none"
@@ -66,10 +106,7 @@ onLoad(()=>{
           :key="goods.id"
           :url="`/pages/goods/goods?id=${goods.id}`"
         >
-          <image
-            class="thumb"
-            :src="goods.picture"
-          ></image>
+          <image class="thumb" :src="goods.picture"></image>
           <view class="name ellipsis">{{ goods.name }}</view>
           <view class="price">
             <text class="symbol">¥</text>
@@ -77,7 +114,9 @@ onLoad(()=>{
           </view>
         </navigator>
       </view>
-      <view class="loading-text">正在加载...</view>
+      <view class="loading-text">
+        {{ item.finish ? '没有更多数据了' : '加载中...' }}
+      </view>
     </scroll-view>
   </view>
 </template>
