@@ -6,6 +6,7 @@ import { onLoad } from '@dcloudio/uni-app';
 import { ref } from 'vue';
 import type { BannerItem, CategoryItem, HotItem } from '@/types/home';
 import HotPanel from './components/HotPanel.vue';
+import type { XtxGuessInstance } from '@/components/components';
 
 //获取轮播图数据
 const bannerList = ref<BannerItem[]>([])
@@ -37,12 +38,36 @@ onLoad(() => {
   getHomeCategoryData()
   getHomeHotData()
 })
+// 获取猜你喜欢组件实例
+const guessRef = ref<XtxGuessInstance>()
+// 滚动底部函数
+const onScrolltolower = () =>{
+  guessRef.value?.getMore()
+}
+// 刷新
+const isTriggered = ref(false)
+const onRefresherrefresh = async() =>{
+  //开启动画
+  isTriggered.value = true
+  // await getHomeBannerData()
+  // await getHomeCategoryData()
+  // await getHomeHotData()
+  guessRef.value?.resetData
+  await Promise.all([
+    getHomeBannerData(),
+    getHomeCategoryData(),
+    getHomeHotData()
+  ])
+  //关闭动画
+  isTriggered.value = false
+}
 </script>
 
 <template>
   <!-- 自定义导航栏 -->
   <CustomNavbar />
-  <scroll-view class="scroll-view" scroll-y>
+  <!-- 滚动容器 -->
+  <scroll-view refresher-enabled @refresherrefresh="onRefresherrefresh" :refresher-triggered="isTriggered" @scrolltolower="onScrolltolower" class="scroll-view" scroll-y>
     <!-- 自定义轮播图-->
     <XtxSwiper :list="bannerList" />
     <!-- 分类面板 -->
@@ -50,7 +75,7 @@ onLoad(() => {
     <!-- 热门推荐 -->
     <HotPanel :list="hotList" />
     <!-- 猜你喜欢 -->
-    <XtxGuess />
+    <XtxGuess ref="guessRef" />
   </scroll-view>
 </template>
 

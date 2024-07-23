@@ -1,17 +1,50 @@
 <script setup lang="ts">
 import { getHomeGuessLikeAPI } from '@/services/home';
+import type { PageParams } from '@/types/global';
 import type { GuessList } from '@/types/home';
 import { onMounted, ref } from 'vue';
 
+const pageParams:Required<PageParams>={
+  page:1,
+  pageSize:10
+}
 // 获取猜你喜欢数据
 const guessList = ref<GuessList[]>([])
+// 已结束标记
+const finish = ref(false)
 const getGuessListData = async() =>{
-  const res = await getHomeGuessLikeAPI()
+  //退出判断
+  if(finish.value){
+    return uni.showToast({icon: 'none',title: '没有更多数据了' })
+  }
+  // 调用接口
+  const res = await getHomeGuessLikeAPI(pageParams)
   console.log(res)
-  guessList.value = res.result.items
+  // guessList.value = res.result.items
+  // 数组追加
+  guessList.value.push(...res.result.items)
+  if(pageParams.page<res.result.pages){
+    //页码追加
+    pageParams.page++
+  }else{
+    finish.value=true
+  }
 }
+//重置数据
+const resetData = () =>{
+  guessList.value=[]
+  pageParams.page=1
+  finish.value=false
+}
+
 onMounted(() => {
   getGuessListData()
+})
+
+//暴露方法
+defineExpose({
+  resetData,
+  getMore: getGuessListData
 })
 </script>
 
@@ -39,7 +72,7 @@ onMounted(() => {
       </view>
     </navigator>
   </view>
-  <view class="loading-text"> 正在加载... </view>
+  <view class="loading-text"> {{ finish ? '没有更多数据了' : '加载中...'}} </view>
 </template>
 
 <style lang="scss">
