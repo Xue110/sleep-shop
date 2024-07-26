@@ -8,6 +8,7 @@ import type { BannerItem, CategoryItem, HotItem } from '@/types/home';
 import HotPanel from './components/HotPanel.vue';
 import type { XtxGuessInstance } from '@/components/components';
 import PageSkeleton from './components/PageSkeleton.vue';
+import { useGuessList } from '@/composables';
 
 //获取轮播图数据
 const bannerList = ref<BannerItem[]>([])
@@ -45,12 +46,10 @@ onLoad( async() => {
     isLoading.value = false
   })
 })
-// 获取猜你喜欢组件实例
-const guessRef = ref<XtxGuessInstance>()
-// 滚动底部函数
-const onScrolltolower = () =>{
-  guessRef.value?.getMore()
-}
+
+// 猜你喜欢组合式函数
+const { guessRef,onScrollTolower } = useGuessList()
+
 // 刷新
 const isTriggered = ref(false)
 const onRefresherrefresh = async() =>{
@@ -74,7 +73,7 @@ const onRefresherrefresh = async() =>{
   <!-- 自定义导航栏 -->
   <CustomNavbar />
   <!-- 滚动容器 -->
-  <scroll-view refresher-enabled @refresherrefresh="onRefresherrefresh" :refresher-triggered="isTriggered" @scrolltolower="onScrolltolower" class="scroll-view" scroll-y>
+  <scroll-view refresher-enabled @refresherrefresh="onRefresherrefresh" :refresher-triggered="isTriggered" @scrolltolower="onScrollTolower" class="scroll-view" scroll-y>
     <PageSkeleton v-if="isLoading" />
     <template v-else>
       <!-- 自定义轮播图-->
