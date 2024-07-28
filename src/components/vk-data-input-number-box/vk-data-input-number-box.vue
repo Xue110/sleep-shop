@@ -259,7 +259,7 @@ export default {
 	methods: {
 		// 空点击事件，主要用于解决PC端H5由于无click事件导致触摸位置不准确的问题
 		emptyClick(){
-
+			
 		},
 		// 触摸事件开始
 		btnTouchStart(callback) {

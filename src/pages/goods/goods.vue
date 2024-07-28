@@ -5,7 +5,7 @@ import { onLoad } from '@dcloudio/uni-app'
 import { ref } from 'vue'
 import AddressPanel from './components/AddressPanel.vue'
 import ServicePanel from './components/ServicePanel.vue'
-
+import type { SkuPopupLocaldata } from '@/components/vk-data-goods-sku-popup/vk-data-goods-sku-popup'
 // 获取屏幕边界到安全区域距离
 const { safeAreaInsets } = uni.getSystemInfoSync()
 //接收参数
@@ -15,8 +15,25 @@ const props = defineProps<{
 //获取商品详情信息
 const goods = ref<GoodsResult>()
 const getGoodsByIdData = async () => {
+  console.log(props.id)
   const res = await getGoodsByIdAPI(props.id)
   goods.value = res.result
+  // SKU组件所需格式
+  localData.value = {
+    _id: res.result.id,
+    name: res.result.name,
+    goods_thumb: res.result.mainPictures[0],
+    spec_list: res.result.specs.map((v) => ({ name: v.name, list: v.values })),
+    sku_list: res.result.skus.map((v) => ({
+      _id: v.id,
+      goods_id: res.result.id,
+      goods_name: res.result.name,
+      image: v.picture,
+      price: v.price * 100, // 注意：需要乘以 100
+      stock: v.inventory,
+      sku_name_arr: v.specs.map((vv) => vv.valueName),
+    })),
+  }
 }
 //页面加载
 onLoad(() => {
@@ -64,9 +81,16 @@ const openPopup = (name: typeof popupName.value) => {
 const closePopup = () => {
   popup.value?.close()
 }
+
+//sku弹窗
+const isShowSku = ref(false)
+//商品信息
+const localData = ref({} as SkuPopupLocaldata)
 </script>
 
 <template>
+  <!--sku弹窗组件 -->
+  <vk-data-goods-sku-popup v-model="isShowSku" :localdata="localData"></vk-data-goods-sku-popup>
   <scroll-view scroll-y class="viewport">
     <!-- 基本信息 -->
     <view class="goods">
@@ -98,7 +122,7 @@ const closePopup = () => {
 
       <!-- 操作面板 -->
       <view class="action">
-        <view class="item arrow">
+        <view @tap="isShowSku = true" class="item arrow">
           <text class="label">选择</text>
           <text class="text ellipsis"> 请选择商品规格 </text>
         </view>
