@@ -2,10 +2,11 @@
 import { getGoodsByIdAPI } from '@/services/goods'
 import type { GoodsResult } from '@/types/goods'
 import { onLoad } from '@dcloudio/uni-app'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import AddressPanel from './components/AddressPanel.vue'
 import ServicePanel from './components/ServicePanel.vue'
-import type { SkuPopupLocaldata } from '@/components/vk-data-goods-sku-popup/vk-data-goods-sku-popup'
+import type { SkuPopupEvent, SkuPopupInstance, SkuPopupLocaldata } from '@/components/vk-data-goods-sku-popup/vk-data-goods-sku-popup'
+import { addToCart } from '@/services/cart'
 // 获取屏幕边界到安全区域距离
 const { safeAreaInsets } = uni.getSystemInfoSync()
 //接收参数
@@ -86,11 +87,53 @@ const closePopup = () => {
 const isShowSku = ref(false)
 //商品信息
 const localData = ref({} as SkuPopupLocaldata)
+// 按钮模式
+enum SkuMode{
+  Both = 1,
+  Cart = 2,
+  Buy = 3
+}
+const mode = ref<SkuMode>(SkuMode.Both)
+// 打开Sku弹窗修改按钮模式
+const openSkuPopup = (val: SkuMode) => {
+  isShowSku.value = true
+  // 修改按钮模式
+  mode.value = val
+}
+// sku组件实例
+const skuPopupRef = ref<SkuPopupInstance>()
+// 计算被选中的值
+const selectArrText = computed(() => {
+  return skuPopupRef.value?.selectArr?.join(' ').trim() || '请选择商品规格'
+})
+
+// 添加购物车
+const onAddCart = async (ev:SkuPopupEvent) => {
+  const res = await addToCart({skuId:ev._id,count:ev.buy_num})
+  uni.showToast({
+    title: res.result ? '添加成功' : '添加失败',
+    icon: res.result ? 'success' : 'none',
+  })
+  isShowSku.value = false
+}
 </script>
 
 <template>
   <!--sku弹窗组件 -->
-  <vk-data-goods-sku-popup v-model="isShowSku" :localdata="localData"></vk-data-goods-sku-popup>
+  <vk-data-goods-sku-popup
+    v-model="isShowSku"
+    :localdata="localData"
+    :mode="mode"
+    add-cart-background-color="#FFA868"
+    buy-now-background-color="#27BA9B"
+    ref="skuPopupRef"
+    :actived-style="{
+      color: '#27BA9B',
+      boderColor: '#27BA9B',
+      background: '#E9F8F5'
+    }"
+    @add-cart="onAddCart"
+   />
   <scroll-view scroll-y class="viewport">
     <!-- 基本信息 -->
     <view class="goods">
@@ -122,9 +165,9 @@ const localData = ref({} as SkuPopupLocaldata)
 
       <!-- 操作面板 -->
       <view class="action">
-        <view @tap="isShowSku = true" class="item arrow">
+        <view @tap="openSkuPopup(SkuMode.Both)" class="item arrow">
           <text class="label">选择</text>
-          <text class="text ellipsis"> 请选择商品规格 </text>
+          <text class="text ellipsis"> {{ selectArrText }} </text>
         </view>
         <view @tap="openPopup('address')" class="item arrow">
           <text class="label">送至</text>
@@ -196,8 +239,8 @@ const localData = ref({} as SkuPopupLocaldata)
       </navigator>
     </view>
     <view class="buttons">
-      <view class="addcart"> 加入购物车 </view>
-      <view class="buynow"> 立即购买 </view>
+      <view @tap="openSkuPopup(SkuMode.Cart)" class="addcart"> 加入购物车 </view>
+      <view @tap="openSkuPopup(SkuMode.Buy)" class="buynow"> 立即购买 </view>
     </view>
   </view>
 

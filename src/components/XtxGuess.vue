@@ -5,7 +5,7 @@ import type { GuessList } from '@/types/home';
 import { onMounted, ref } from 'vue';
 
 const pageParams:Required<PageParams>={
-  page:1,
+  page:10,
   pageSize:10
 }
 // 获取猜你喜欢数据
